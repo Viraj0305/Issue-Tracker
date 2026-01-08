@@ -69,10 +69,6 @@ Error Handling
 - Database constraint handling
 - Transaction rollback for bulk operations
 
-Design Notes
-- Optimistic locking prevents lost updates
-- Database constraints ensure integrity
-- Timeline provides audit trail
 
 
 
