@@ -6,10 +6,12 @@ from ..utils import handle_db_error
 from ..models import Issue, Comment, Label, IssueHistory,User
 from ..schemas import *
 from ..deps import get_db
+from datetime import datetime, timezone
+
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
-
+# BULK STATUS UPDATE (TRANSACTIONAL)
 @router.post("/bulk-status")
 def bulk_status(data: BulkStatus, db: Session = Depends(get_db)):
     try:
@@ -24,6 +26,7 @@ def bulk_status(data: BulkStatus, db: Session = Depends(get_db)):
         raise HTTPException(400, "Bulk update failed")
     return {"updated": len(data.issue_ids)}
 
+# CSV IMPORT FOR ISSUE CREATION
 @router.post("/import")
 def import_csv(file: UploadFile, db: Session = Depends(get_db)):
     content = file.file.read().decode("utf-8").splitlines()
@@ -59,6 +62,7 @@ def import_csv(file: UploadFile, db: Session = Depends(get_db)):
     }
 
 
+# CREATE ISSUE
 @router.post("")
 def create_issue(data: IssueCreate, db: Session = Depends(get_db)):
     issue = Issue(**data.dict())
@@ -71,10 +75,12 @@ def create_issue(data: IssueCreate, db: Session = Depends(get_db)):
 
     return issue
 
+# LIST ISSUES
 @router.get("")
 def list_issues(db: Session = Depends(get_db), skip: int = 0, limit: int = 10):
     return db.query(Issue).offset(skip).limit(limit).all()
 
+# GET ISSUE DETAILS 
 @router.get("/{issue_id}")
 def get_issue(issue_id: int, db: Session = Depends(get_db)):
     issue = db.get(Issue, issue_id)
@@ -83,7 +89,7 @@ def get_issue(issue_id: int, db: Session = Depends(get_db)):
     return issue
 
 
-
+# UPDATE ISSUE
 @router.patch("/{issue_id}")
 def update_issue(
     issue_id: int,
@@ -103,12 +109,29 @@ def update_issue(
 
     if data.status is not None and data.status != issue.status:
         issue.status = data.status
-        db.add(IssueHistory(issue_id=issue.id, action=f"Status changed to {data.status}"))
+
+        if data.status == "closed":
+            issue.closed_at = datetime.now(timezone.utc)
+        else:
+            issue.closed_at = None
+
+        db.add(IssueHistory(
+            issue_id=issue.id,
+            action=f"Status changed to {data.status}"
+        ))
+
+    if data.assignee_id is not None:
+        issue.assignee_id = data.assignee_id
+        db.add(IssueHistory(
+            issue_id=issue.id,
+            action=f"Assigned to user {data.assignee_id}"
+        ))
 
     issue.version += 1
     db.commit()
     return issue
 
+# ADD COMMENT TO ISSUE
 @router.post("/{issue_id}/comments")
 def add_comment(issue_id: int, data: CommentCreate, db: Session = Depends(get_db)):
     user = db.get(User, data.author_id)
@@ -124,6 +147,7 @@ def add_comment(issue_id: int, data: CommentCreate, db: Session = Depends(get_db
         db.rollback()
         handle_db_error(e)
 
+# REPLACE LABELS
 @router.put("/{issue_id}/labels")
 def replace_labels(issue_id: int, labels: list[str], db: Session = Depends(get_db)):
     issue = db.get(Issue, issue_id)

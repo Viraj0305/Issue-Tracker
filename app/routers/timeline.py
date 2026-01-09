@@ -5,6 +5,7 @@ from ..deps import get_db
 
 router = APIRouter(prefix="/issues", tags=["Timeline"])
 
+#TIMELINE OF AN ISSUE
 @router.get("/{issue_id}/timeline")
 def get_issue_timeline(issue_id: int, db: Session = Depends(get_db)):
     return (

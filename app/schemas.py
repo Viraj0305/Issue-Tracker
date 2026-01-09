@@ -7,8 +7,9 @@ class IssueCreate(BaseModel):
     assignee_id: Optional[int] = None
 
 class IssueUpdate(BaseModel):
-    title: Optional[str] = None   # ✅ DEFAULT IS REQUIRED
-    status: Optional[str] = None  # ✅ DEFAULT IS REQUIRED
+    title: Optional[str] = None   
+    status: Optional[str] = None 
+    assignee_id: Optional[int] = None
     version: int
 
 class CommentCreate(BaseModel):

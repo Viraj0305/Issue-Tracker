@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
+# Centralized database error handler that converts SQLAlchemy exceptions
 def handle_db_error(e: Exception):
     if isinstance(e, IntegrityError):
         raise HTTPException(

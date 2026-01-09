@@ -5,6 +5,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
+from datetime import datetime, timezone
+
+
+
 
 issue_labels = Table(
     "issue_labels",
@@ -26,9 +30,8 @@ class Issue(Base):
     status = Column(String, default="open")
     assignee_id = Column(Integer, ForeignKey("users.id"))
     version = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    closed_at = Column(DateTime)
-
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    closed_at = Column(DateTime(timezone=True), nullable=True)
     comments = relationship("Comment", cascade="all, delete")
     labels = relationship("Label", secondary=issue_labels)
 
@@ -45,7 +48,7 @@ class Label(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
 
-# ✅ Timeline Table (BONUS)
+# Timeline Table
 class IssueHistory(Base):
     __tablename__ = "issue_history"
     id = Column(Integer, primary_key=True)
